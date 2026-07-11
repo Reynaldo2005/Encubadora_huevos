@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #1A1512;
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(232, 163, 61, 0.06), transparent 40%),
+    radial-gradient(circle at 80% 100%, rgba(232, 163, 61, 0.04), transparent 40%);
+  color: #F2E9DC;
+  font-family: 'Inter', sans-serif;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-mono-data {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.input {
+  background-color: #241d18;
+  border: 1px solid #3a2f27;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #f2e9dc;
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+}
+.input:focus {
+  outline: none;
+  border-color: #e8a33d;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.25rem;
+  border-radius: 9999px;
+  background-color: #e8a33d;
+  color: #1a1512;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  transition: background-color 0.15s ease;
+}
+.btn-primary:hover {
+  background-color: #f2c879;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+}
