@@ -20,7 +20,7 @@ import {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { incubacion_id, temperatura, humedad, movimiento } = body;
+    const { incubacion_id, temperatura, humedad, movimiento, puerta_abierta } = body;
     const fecha_hora = body.fecha_hora ? new Date(body.fecha_hora) : new Date();
 
     if (!incubacion_id || temperatura === undefined || humedad === undefined) {
@@ -74,6 +74,7 @@ export async function POST(request) {
         temperatura,
         humedad,
         movimiento: !!movimiento,
+        puerta_abierta: !!puerta_abierta,
       })
       .select()
       .single();

@@ -382,6 +382,22 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <div className="bg-panel-card border border-panel-border rounded-2xl p-6 flex items-center justify-between">
+          <div>
+            <p className="text-muted text-xs uppercase tracking-widest front-mono-data mb-1">
+              Estado de la puerta
+            </p>
+            <p className={`font-display ${ultimaLectura?.puerta_abierta ? "text-status-warn" : "text-cream"}`}>
+              {ultimaLectura?.puerta_abierta ? "Abierta" : "Cerrada"}
+            </p>
+          </div>
+          <span
+            className={`h-3 w-3 rounded-full ${
+              ultimaLectura?.puerta_abierta ? "bg-status-warn" : "bg-status-ok"
+            }`}
+          />
+      </div>
+
       <div className="mt-10">
         <h2 className="font-display text-lg text-cream mb-4">Lecturas recientes</h2>
         <div className="bg-panel-card border border-panel-border rounded-2xl overflow-hidden">
@@ -392,12 +408,13 @@ export default function DashboardPage() {
                 <th className="text-left px-5 py-3">Temp.</th>
                 <th className="text-left px-5 py-3">Humedad</th>
                 <th className="text-left px-5 py-3">Movimiento</th>
+                <th className="text-left px-5 py-3">Puerta</th>
               </tr>
             </thead>
             <tbody>
               {historial.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-6 text-muted text-center">
+                  <td colSpan={5} className="px-5 py-6 text-muted text-center">
                     Aún no llegan datos del sensor.
                   </td>
                 </tr>
@@ -415,6 +432,7 @@ export default function DashboardPage() {
                   <td className="px-5 py-3">{l.temperatura}°C</td>
                   <td className="px-5 py-3">{l.humedad}%</td>
                   <td className="px-5 py-3">{l.movimiento ? "Sí" : "No"}</td>
+                  <td className="px-5 py-3">{l.puerta_abierta ? "Abierta" : "Cerrada"}</td>
                 </tr>
               ))}
             </tbody>
