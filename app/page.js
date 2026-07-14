@@ -106,7 +106,7 @@ export default function DashboardPage() {
       .select("*")
       .eq("incubacion_id", loteSeleccionadoId)
       .order("fecha_hora", { ascending: false })
-      .limit(10);
+      .limit(50);
 
     setHistorial(lecturas || []);
     setUltimaLectura(lecturas && lecturas.length > 0 ? lecturas[0] : null);
@@ -401,17 +401,18 @@ export default function DashboardPage() {
       <div className="mt-10">
         <h2 className="font-display text-lg text-cream mb-4">Lecturas recientes</h2>
         <div className="bg-panel-card border border-panel-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm font-mono-data">
-            <thead>
-              <tr className="text-muted text-xs uppercase tracking-wider border-b border-panel-border">
-                <th className="text-left px-5 py-3">Hora</th>
-                <th className="text-left px-5 py-3">Temp.</th>
-                <th className="text-left px-5 py-3">Humedad</th>
-                <th className="text-left px-5 py-3">Movimiento</th>
-                <th className="text-left px-5 py-3">Puerta</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className="max-h-[400px] overflow-y-auto">
+            <table className="w-full text-sm font-mono-data">
+              <thead className="sticky top-0 bg-panel-card">
+                <tr className="text-muted text-xs uppercase tracking-wider border-b border-panel-border">
+                  <th className="text-left px-5 py-3">Hora</th>
+                  <th className="text-left px-5 py-3">Temp.</th>
+                  <th className="text-left px-5 py-3">Humedad</th>
+                  <th className="text-left px-5 py-3">Movimiento</th>
+                  <th className="text-left px-5 py-3">Puerta</th>
+                </tr>
+              </thead>
+              <tbody>
               {historial.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-5 py-6 text-muted text-center">
@@ -435,8 +436,9 @@ export default function DashboardPage() {
                   <td className="px-5 py-3">{l.puerta_abierta ? "Abierta" : "Cerrada"}</td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
