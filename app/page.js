@@ -497,7 +497,7 @@ async function verificarYRegistrarAlertas(lote, lectura, dias, diasIncubacionTot
   if (necesitaAlertaHumedadBaja(lectura.humedad)) {
     candidatos.push({
       tipo: "humedad_baja",
-      mensaje: `Humedad por debajo del mínimo: ${lectura.humedad}% (límite: 60%)`,
+      mensaje: `Humedad por debajo del mínimo: ${lectura.humedad}% (límite: menor a 60%)`,
     });
   }
 
