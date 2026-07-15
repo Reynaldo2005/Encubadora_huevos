@@ -11,6 +11,8 @@ import {
   calcularFechaEclosion,
   calcularAlertaVolteo,
   evaluarLectura,
+  necesitaAlertaTemperaturaAlta,
+  necesitaAlertaHumedadBaja,
 } from "@/lib/incubacionLogic";
 
 export default function DashboardPage() {
@@ -21,7 +23,7 @@ export default function DashboardPage() {
   const [loteSeleccionadoId, setLoteSeleccionadoId] = useState(null);
   const [ultimaLectura, setUltimaLectura] = useState(null);
   const [historial, setHistorial] = useState([]);
-  const [alertaPendiente, setAlertaPendiente] = useState(null);
+  const [alertasPendientes, setAlertasPendientes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -97,7 +99,7 @@ export default function DashboardPage() {
     if (!loteSeleccionadoId) {
       setHistorial([]);
       setUltimaLectura(null);
-      setAlertaPendiente(null);
+      setAlertasPendientes([]);
       return;
     }
 
@@ -109,20 +111,37 @@ export default function DashboardPage() {
       .limit(50);
 
     setHistorial(lecturas || []);
-    setUltimaLectura(lecturas && lecturas.length > 0 ? lecturas[0] : null);
+    const lecturaActual = lecturas && lecturas.length > 0 ? lecturas[0] : null;
+    setUltimaLectura(lecturaActual);
 
-    const { data: alerta } = await supabase
+    const { data: ultimoMovimientoData } = await supabase
+    .from("lecturas_sensor")
+    .select("fecha_hora")
+    .eq("incubacion_id", loteSeleccionadoId)
+    .eq("movimiento", true)
+    .order("fecha_hora", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+    const loteActual = lotes.find((l) => l.id === loteSeleccionadoId);
+
+    if (loteActual && loteActual.estado === "Activa" && lecturaActual && loteActual.tipos_huevo) {
+      const dias = diasTranscurridos(loteActual.fecha_inicio);
+      const diasTotal = loteActual.tipos_huevo.dias_incubacion ?? 21;
+      const ultimoMovimiento = lecturas.find((l) => l.movimiento)?.fecha_hora ?? null;
+
+      await verificarYRegistrarAlertas(loteActual, lecturaActual, dias, diasTotal, ultimoMovimiento);
+    }
+
+    const { data: alertas } = await supabase
       .from("alertas")
       .select("*")
       .eq("incubacion_id", loteSeleccionadoId)
-      .eq("tipo", "volteo")
       .eq("estado", "Pendiente")
-      .order("fecha_hora", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order("fecha_hora", { ascending: false });
 
-    setAlertaPendiente(alerta || null);
-  }, [loteSeleccionadoId]);
+    setAlertasPendientes(alertas || []);
+  }, [loteSeleccionadoId, lotes]);
 
   useEffect(() => {
     cargarDetalleLote();
@@ -130,10 +149,9 @@ export default function DashboardPage() {
     return () => clearInterval(intervalo);
   }, [cargarDetalleLote]);
 
-  async function resolverAlerta() {
-    if (!alertaPendiente) return;
-    await supabase.from("alertas").update({ estado: "Resuelta" }).eq("id", alertaPendiente.id);
-    setAlertaPendiente(null);
+  async function resolverAlerta(id) {
+    await supabase.from("alertas").update({ estado: "Resuelta" }).eq("id", id);
+    setAlertasPendientes((prev) => prev.filter((a) => a.id !== id));
   }
 
   async function reactivarLote(){
@@ -203,13 +221,6 @@ export default function DashboardPage() {
   const progreso = Math.min(1, diasClamped / diasIncubacionTotal);
   const esLoteActivo = loteSeleccionado.estado === "Activa";
 
-  const necesitaVolteoAhora =
-    esLoteActivo &&
-    calcularAlertaVolteo(
-      dias,
-      diasIncubacionTotal,
-      historial.find((l) => l.movimiento)?.fecha_hora ?? null
-    );
 
   const evaluacion = ultimaLectura
     ? evaluarLectura(ultimaLectura.temperatura, ultimaLectura.humedad, tipoHuevo)
@@ -278,22 +289,25 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {esLoteActivo && (alertaPendiente || necesitaVolteoAhora) && (
-        <div className="mb-8 flex items-center justify-between gap-3 rounded-xl border border-status-danger/40 bg-status-danger/10 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="h-2.5 w-2.5 rounded-full bg-status-danger animate-pulse shrink-0" />
-            <p className="text-status-danger font-medium text-sm">
-              {alertaPendiente?.mensaje ?? "Los huevos llevan varias horas sin voltearse."}
-            </p>
-          </div>
-          {alertaPendiente && (
-            <button
-              onClick={resolverAlerta}
-              className="text-xs px-3 py-1.5 rounded-full border border-status-danger/50 text-status-danger hover:bg-status-danger/20 transition-colors shrink-0"
+      {esLoteActivo && alertasPendientes.length > 0 && (
+        <div className="mb-8 flex flex-col gap-3">
+          {alertasPendientes.map((alerta) => (
+            <div
+              key={alerta.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-status-danger/40 bg-status-danger/10 px-5 py-4"
             >
-              Ya volteé
-            </button>
-          )}
+              <div className="flex items-center gap-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-status-danger animate-pulse shrink-0" />
+                <p className="text-status-danger font-medium text-sm">{alerta.mensaje}</p>
+              </div>
+              <button
+                onClick={() => resolverAlerta(alerta.id)}
+                className="text-xs px-3 py-1.5 rounded-full border border-status-danger/50 text-status-danger hover:bg-status-danger/20 transition-colors shrink-0"
+              >
+                Marcar resuelta
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -461,4 +475,49 @@ function MetricCard({ label, valor, ok, rango }) {
       {rango && <p className="text-muted text-xs mt-1">Ideal: {rango}</p>}
     </div>
   );
+}
+
+async function verificarYRegistrarAlertas(lote, lectura, dias, diasIncubacionTotal, ultimoMovimiento) {
+  const candidatos = [];
+
+  if (calcularAlertaVolteo(dias, diasIncubacionTotal, ultimoMovimiento)) {
+    candidatos.push({
+      tipo: "volteo",
+      mensaje: "Los huevos llevan varias horas sin voltearse.",
+    });
+  }
+
+  if (necesitaAlertaTemperaturaAlta(lectura.temperatura)) {
+    candidatos.push({
+      tipo: "temperatura_alta",
+      mensaje: `Temperatura máxima alcanzada: ${lectura.temperatura}°C (límite: 39°C)`,
+    });
+  }
+
+  if (necesitaAlertaHumedadBaja(lectura.humedad)) {
+    candidatos.push({
+      tipo: "humedad_baja",
+      mensaje: `Humedad por debajo del mínimo: ${lectura.humedad}% (límite: 55%)`,
+    });
+  }
+
+  for (const candidato of candidatos) {
+    const { data: existente } = await supabase
+      .from("alertas")
+      .select("id")
+      .eq("incubacion_id", lote.id)
+      .eq("tipo", candidato.tipo)
+      .eq("estado", "Pendiente")
+      .limit(1)
+      .maybeSingle();
+
+    if (!existente) {
+      await supabase.from("alertas").insert({
+        incubacion_id: lote.id,
+        tipo: candidato.tipo,
+        mensaje: candidato.mensaje,
+        estado: "Pendiente",
+      });
+    }
+  }
 }
